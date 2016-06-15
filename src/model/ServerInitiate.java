@@ -25,21 +25,27 @@ public class ServerInitiate {
         try(ServerSocket serverSocket = new ServerSocket(4242)){
             while (true){
                 Socket socket = serverSocket.accept();
+                System.out.println("check 1 complete");
                 retrieveMessages(socket);
+                System.out.println("check 2 complete");
                 sendMessages(socket);
             }
         }
-        catch (IOException e){}
+        catch (IOException e){
+            e.printStackTrace();
+        }
     }
 
     private void retrieveMessages(Socket socket) throws IOException{
         InputStreamReader inputStreamReader = new InputStreamReader(socket.getInputStream());
         BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+        System.out.println("check b1 complete");
         String message;
-        while ((message=bufferedReader.readLine())!=null){
+        if ((message=bufferedReader.readLine())!=null){
             messages.add(message);
         }
-        inputStreamReader.close();
+        System.out.println("check b2 complete");
+//        inputStreamReader.close();
     }
 
     private void sendMessages(Socket socket) throws IOException{

@@ -47,11 +47,14 @@ public class ClientInitiate extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 sendMessageNow();
+                System.out.println("message sent");
                 try {
                     receiveNewMessages();
                 } catch (IOException e1) {
                     e1.printStackTrace();
                 }
+                System.out.println("message received");
+
             }
             //receive messages from server
             private void receiveNewMessages() throws IOException {
