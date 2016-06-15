@@ -12,6 +12,11 @@ import java.util.ArrayList;
 public class ServerInitiate {
 
     private ArrayList messages;
+
+    public ServerInitiate(){
+        messages = new ArrayList();
+    }
+
     /**
      * launches server
      */
