@@ -48,26 +48,28 @@ public class ClientInitiate extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 sendMessageNow();
                 System.out.println("message sent");
+                Thread thread = new Thread(
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    receiveNewMessages();
+                                } catch (IOException e1) {
+                                    e1.printStackTrace();
+                                }
+                            }
+                        }
+                );
                 try {
-                    receiveNewMessages();
-                } catch (IOException e1) {
+                    thread.sleep(500);
+                } catch (InterruptedException e1) {
                     e1.printStackTrace();
                 }
+                thread.run();
                 System.out.println("message received");
 
             }
-            //receive messages from server
-            private void receiveNewMessages() throws IOException {
-                BufferedReader bufferedReader = new BufferedReader(
-                        new InputStreamReader(socket.getInputStream())
-                );
-                String message;
-                while ((message=bufferedReader.readLine())!=null){
-                    conversation.add(new JLabel(message));
-                    repaint();
-                    revalidate();
-                }
-            }
+
             //send message to server
             private void sendMessageNow() {
                 printWriter.println(messageToSend.getText());
@@ -75,6 +77,20 @@ public class ClientInitiate extends JFrame {
                 messageToSend.setText("");
                 messageToSend.requestFocus();
             }
+
+            //receive messages from server
+            private void receiveNewMessages() throws IOException {
+                BufferedReader bufferedReader = new BufferedReader(
+                        new InputStreamReader(socket.getInputStream())
+                );
+                String message;
+                if ((message=bufferedReader.readLine())!=null){
+                    conversation.add(new JLabel(message));
+                    repaint();
+                    revalidate();
+                }
+            }
+
         });
 
         messageToSend.requestFocus();

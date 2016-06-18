@@ -9,7 +9,9 @@ import model.ServerInitiate;
 public class Main {
 
     public static void main(String[] args) {
-        new ServerInitiate();
-//        new ClientInitiate();
+//        new ServerInitiate().go();
+//        ClientInitiate clientInitiate = new ClientInitiate();
+//        clientInitiate.go();
+//        clientInitiate.setVisible(true);
     }
 }

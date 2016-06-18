@@ -12,6 +12,10 @@ import java.util.ArrayList;
 public class ServerInitiate {
 
     private ArrayList messages;
+    private Socket socket;
+    private InputStreamReader inputStreamReader;
+    private BufferedReader bufferedReader;
+    private PrintWriter printWriter;
 
     public ServerInitiate(){
         messages = new ArrayList();
@@ -20,15 +24,21 @@ public class ServerInitiate {
     /**
      * launches server
      */
-    public void go() {
+    public synchronized void go() {
 
         try(ServerSocket serverSocket = new ServerSocket(4242)){
             while (true){
-                Socket socket = serverSocket.accept();
-                System.out.println("check 1 complete");
-                retrieveMessages(socket);
-                System.out.println("check 2 complete");
-                sendMessages(socket);
+                socket = serverSocket.accept();
+                inputStreamReader = new InputStreamReader(socket.getInputStream());
+                bufferedReader = new BufferedReader(inputStreamReader);
+                printWriter = new PrintWriter(socket.getOutputStream());
+                while (true){
+                    System.out.println("check 1 complete");
+                    retrieveMessages();
+                    System.out.println("check 2 complete");
+                    sendMessages();
+                    System.out.println("check 3 complete");
+                }
             }
         }
         catch (IOException e){
@@ -36,24 +46,20 @@ public class ServerInitiate {
         }
     }
 
-    private void retrieveMessages(Socket socket) throws IOException{
-        InputStreamReader inputStreamReader = new InputStreamReader(socket.getInputStream());
-        BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+    private void retrieveMessages() throws IOException{
         System.out.println("check b1 complete");
         String message;
         if ((message=bufferedReader.readLine())!=null){
             messages.add(message);
         }
         System.out.println("check b2 complete");
-//        inputStreamReader.close();
     }
 
-    private void sendMessages(Socket socket) throws IOException{
-        PrintWriter printWriter = new PrintWriter(socket.getOutputStream());
+    private void sendMessages() throws IOException{
         for (String s: (ArrayList<String>) messages){
             printWriter.println(s+" - "+System.currentTimeMillis());
         }
-        printWriter.close();
+        printWriter.flush();
         messages.clear();
     }
 
