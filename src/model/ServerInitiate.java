@@ -1,69 +1,72 @@
 package model;
 
 import java.io.*;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 
 /**
  * Created by Omar on 6/12/2016.
+ * code based on Head First Java, 2nd Edition. Head First Java, 2nd Edition, ISBN: 0596009208
  */
 public class ServerInitiate {
 
-    private ArrayList messages;
-    private Socket socket;
-    private InputStreamReader inputStreamReader;
-    private BufferedReader bufferedReader;
-    private PrintWriter printWriter;
+    private ArrayList<PrintWriter> clientOutputStreams;
 
+    /**
+     * initializes client printstream arraylist
+     */
     public ServerInitiate(){
-        messages = new ArrayList();
+        clientOutputStreams = new ArrayList();
     }
 
     /**
-     * launches server
+     * sets readers for each client
      */
-    public synchronized void go() {
+    public void go() {
 
         try(ServerSocket serverSocket = new ServerSocket(4242)){
             while (true){
-                socket = serverSocket.accept();
-                inputStreamReader = new InputStreamReader(socket.getInputStream());
-                bufferedReader = new BufferedReader(inputStreamReader);
-                printWriter = new PrintWriter(socket.getOutputStream());
-                while (true){
-                    System.out.println("check 1 complete");
-                    retrieveMessages();
-                    System.out.println("check 2 complete");
-                    sendMessages();
-                    System.out.println("check 3 complete");
-                }
+                Socket socket = serverSocket.accept();
+                clientOutputStreams.add(new PrintWriter(socket.getOutputStream()));
+                Thread thread = new Thread(new UserMessages(socket));
+                thread.start();
             }
         }
-        catch (IOException e){
+        catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private void retrieveMessages() throws IOException{
-        System.out.println("check b1 complete");
-        String message;
-        if ((message=bufferedReader.readLine())!=null){
-            messages.add(message);
-        }
-        System.out.println("check b2 complete");
-    }
-
-    private void sendMessages() throws IOException{
-        for (String s: (ArrayList<String>) messages){
-            printWriter.println(s+" - "+System.currentTimeMillis());
-        }
-        printWriter.flush();
-        messages.clear();
-    }
 
     public static void main(String[] args) {
         new ServerInitiate().go();
+    }
+
+    /**
+     * Starts waiting for messages sent by user
+     */
+    private class UserMessages implements Runnable {
+
+        BufferedReader bufferedReader;
+        String message;
+
+        private UserMessages(Socket socket) throws IOException {
+            bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        }
+
+        @Override
+        public void run() {
+            try {
+                while ((message = bufferedReader.readLine())!=null){
+                    for (PrintWriter writer: clientOutputStreams){
+                        writer.println(message);
+                        writer.flush();
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

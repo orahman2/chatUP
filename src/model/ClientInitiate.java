@@ -1,6 +1,7 @@
 package model;
 
 import javax.swing.*;
+import javax.swing.plaf.nimbus.NimbusLookAndFeel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -10,11 +11,12 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.time.LocalDateTime;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by Omar on 6/12/2016.
- */
-/**
+ * code based on Head First Java, 2nd Edition. Head First Java, 2nd Edition, ISBN: 0596009208
  * lets client launch their own chat app
  * and send messages to server (localhost)
  */
@@ -25,11 +27,29 @@ public class ClientInitiate extends JFrame {
     private JButton sendMessage;
     private Socket socket;
     private PrintWriter printWriter;
-    private JPanel conversation;
+    private BufferedReader bufferedReader;
+    private JTextArea conversation;
+    private String name;
 
     public void go() {
+        name = JOptionPane.showInputDialog(null,"What's your name?", "Welcome welcome!", 3);
+        if (name == null||name.equals(""))
+            name = "anonymous";
         setUpNetworking();
         setUpUI();
+        Thread thread = new Thread(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            receiveNewMessages();
+                        } catch (IOException e1) {
+                            e1.printStackTrace();
+                        }
+                    }
+                }
+        );
+        thread.start();
     }
 
     /**
@@ -47,61 +67,48 @@ public class ClientInitiate extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 sendMessageNow();
-                System.out.println("message sent");
-                Thread thread = new Thread(
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    receiveNewMessages();
-                                } catch (IOException e1) {
-                                    e1.printStackTrace();
-                                }
-                            }
-                        }
-                );
-                try {
-                    thread.sleep(500);
-                } catch (InterruptedException e1) {
-                    e1.printStackTrace();
-                }
-                thread.run();
-                System.out.println("message received");
-
             }
 
             //send message to server
             private void sendMessageNow() {
-                printWriter.println(messageToSend.getText());
+                LocalDateTime timeStamp = LocalDateTime.now();
+                printWriter.println(messageToSend.getText() + "\n - " + name + ", " +
+                        timeStamp.getHour()+ ":" + timeStamp.getMinute());
                 printWriter.flush();
                 messageToSend.setText("");
                 messageToSend.requestFocus();
             }
 
-            //receive messages from server
-            private void receiveNewMessages() throws IOException {
-                BufferedReader bufferedReader = new BufferedReader(
-                        new InputStreamReader(socket.getInputStream())
-                );
-                String message;
-                if ((message=bufferedReader.readLine())!=null){
-                    conversation.add(new JLabel(message));
-                    repaint();
-                    revalidate();
-                }
-            }
-
         });
 
         messageToSend.requestFocus();
+        try {
+            UIManager.setLookAndFeel(new NimbusLookAndFeel());
+        } catch (UnsupportedLookAndFeelException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
      * sets up UI for conversation pane
      */
     private void setConversation() {
-        (conversation = new JPanel()).setLayout(new BoxLayout(conversation, BoxLayout.Y_AXIS));
-        add(new JScrollPane(conversation), BorderLayout.CENTER);
+        conversation = new JTextArea();
+        conversation.setEditable(false);
+        conversation.setLineWrap(true);
+        conversation.setFont(conversation.getFont().deriveFont(20f));
+        JScrollPane jScrollPane = new JScrollPane(conversation);
+        jScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        jScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        add(jScrollPane, BorderLayout.CENTER);
+    }
+
+    //receive messages from server
+    private void receiveNewMessages() throws IOException {
+        String message;
+        while ((message=bufferedReader.readLine())!=null){
+            conversation.append(message + "\n");
+        }
     }
 
     /**
@@ -110,7 +117,11 @@ public class ClientInitiate extends JFrame {
     private void setSendFrame() {
         JPanel sendPanel = new JPanel();
         sendPanel.setLayout(new BoxLayout(sendPanel, BoxLayout.X_AXIS));
-        sendPanel.add(messageToSend = new JTextArea());
+        JScrollPane jScrollPane = new JScrollPane(messageToSend = new JTextArea());
+        messageToSend.setFont(messageToSend.getFont().deriveFont(20f));
+        sendPanel.add(jScrollPane);
+        jScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        jScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
         sendPanel.add(sendMessage = new JButton("Send"));
         add(sendPanel, BorderLayout.SOUTH);
     }
@@ -122,6 +133,7 @@ public class ClientInitiate extends JFrame {
         try {
             socket = new Socket("127.0.0.1", 4242);
             printWriter = new PrintWriter(socket.getOutputStream());
+            bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         } catch (IOException e) {
             e.printStackTrace();
         }
